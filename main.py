@@ -1,41 +1,6 @@
-from collections import Counter
-from collections import defaultdict
-
-menu_txt = """
-[1] adicionar item
-[2] remover item
-[3] traçar rota
-[0] sair
-
-[?] """
-
-items = [
-	("Túnica única", 6, 50), ("Espada de pau", 3, 20), ("Espada de fogo", 5, 70), ("Escudo de pedra", 9, 30),
-	("Escudo de pau", 4, 20), ("Chapéu nobre", 7, 45), ("Machado de ferro", 8, 50), ("Bota de botas", 2, 40),
-	("Queijo de mamute", 1, 10)
-	]
-
-mochila = []
-
-graph = {
-	'1' : [], 
-	'2' : ['1'], 
-	'3' : [], 
-	'4' : ['3'],
-	'5' : ['4'], 
-	'6' : ['2'], 
-	'7' : ['6'], 
-	'8' : ['5'], 
-	'9' : ['8', '7'],
-	}
-
-def totalvalue(comb):
-	peso_total = valor_total = 0
-	for item, peso, valor in comb:
-		peso_total  += peso
-		valor_total += valor
-	return (valor_total, -peso_total)
-
+import networkx as nx
+import matplotlib.pyplot as plt
+import random
 
 def knapsack01(items, cap):
 	tabela = [[0 for w in range(cap + 1)] for q in range(len(items) + 1)]
@@ -68,143 +33,35 @@ def knapsack01(items, cap):
 	
 	return result
 
+items = [
+	("Túnica única", 2, 50), ("Espada de pau", 1, 20), ("Espada de fogo", 5, 70), ("Escudo de pedra", 9, 30),
+	("Escudo de pau", 5, 20), ("Chapéu nobre", 7, 45), ("Machado de ferro", 3, 50), ("Bota de botas", 1, 40),
+	("Queijo de mamute", 1, 10)
+	]
 
-def djikstra():
-	...
+mochila = []
 
-def clear():
-    print(chr(27) + "[2J")
+G = nx.random_regular_graph(4, 7)
 
+for (u, v) in G.edges():
+    G.edges[u,v]['weight'] = random.randint(0,10)
+    G.edges[u,v]['item'] = items[random.randint(0, len(items)-1)]
 
-def listar_itens(arr):
-	i = 0
-	for item in arr:
-		i+=1
-		print(f"[{i}] {item[0]}\tpeso: {item[1]} valor: {item[2]}")
+elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
+esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
 
+pos = nx.spring_layout(G)
 
-def adicionar_item_mochila():
-	global mochila
-	global capacidade
-	print("[+] Itens da mochila:\n")
-	listar_itens(mochila)
+nx.draw_networkx_nodes(G, pos, node_size=700)
+nx.draw_networkx_edges(G, pos, edgelist=elarge, width=6)
+nx.draw_networkx_edges(
+    G, pos, edgelist=esmall, width=6, alpha=0.5, edge_color="b", style="dashed"
+)
+nx.draw_networkx_labels(G, pos, font_size=16)
 
-	print("\n[+] Qual item deseja adicionar?\n")
-	listar_itens(items)
-	print("\n[0] Cancelar")
+edge_labels = nx.get_edge_attributes(G, "weight")
+nx.draw_networkx_edge_labels(G, pos, edge_labels)
+plt.show()
 
-	while True:
-		opt = input("[?] ")
-		try:
-			opt = int(opt)
-			if opt >= len(items)+1:
-				input("[-] Digite uma opcao valida, tecle ENTER para continuar")
-				continue
-			break
-		except:
-			input("[-] Digite um numero inteiro, tecle ENTER para continuar")
-			continue
-	
-	if opt == 0:
-		return
-
-	aux_mochila = mochila.copy()
-	aux_mochila.append(items[opt-1])
-	aux_mochila = knapsack01(aux_mochila, capacidade)
-
-	if sorted(aux_mochila) == sorted(mochila):
-		input("[-] Nao ha vantagem em pegar o item, precione ENTER para continuar")
-		return
-
-	mochila_c = Counter(mochila)
-	aux_mochila_c = Counter(aux_mochila)
-
-	diff = aux_mochila_c - mochila_c
-	diff = list(diff.elements())
-	
-	if len(diff) > 0:
-		for item in diff:
-			print(f"[+] Item adicionado: {item}")
-
-	diff = mochila_c - aux_mochila_c
-	diff = list(diff.elements())
-	
-	if len(diff) > 0:
-		for item in diff:
-			print(f"[+] Item removido: {item}")
-
-
-	input("[+] Tecle ENTER para continuar")
-	mochila = aux_mochila
-
-
-def remover_item_mochila():
-	global mochila
-
-	print("[+] Qual item deseja remover?\n")
-	listar_itens(mochila)
-	print("\n[0] Cancelar")
-
-	while True:
-		opt = input("[?] ")
-		try:
-			opt = int(opt)
-			if opt >= len(mochila)+1:
-				input("[-] Digite uma opcao valida, tecle ENTER para continuar")
-				continue
-			break	
-		except:
-			input("[-] Digite um numero inteiro, tecle ENTER para continuar")
-			continue
-	
-	if opt == 0:
-		return
-
-	input(f"[+] Item removido: {mochila[opt-1][0]} Tecle ENTER para continuar")
-	del mochila[opt-1]
-
-	return
-
-while True:
-	capacidade = input("[+] Qual a capacidade de sua mochila?\n[?] ")
-	try:
-		capacidade = int(capacidade)
-		break
-	except:
-		input("[-] Digite um numero inteiro, tecle ENTER para continuar")
-		continue
-
-
-while True:
-	clear()
-	print("[+] Itens da mochila:\n")
-	listar_itens(mochila)
-	val, totalWeight = totalvalue(mochila)
-	print("\n[+] Valor: %i Peso: %i/%i" % (val, -totalWeight, capacidade))
-	opt = input(menu_txt)
-
-	try:
-		opt = int(opt)
-	except:
-		input("[-] Digite uma opcao valida, tecle ENTER para continuar")
-		continue
-
-	if opt == 1:
-		clear()
-		adicionar_item_mochila()
-		continue
-
-	if opt == 2:
-		clear()
-		remover_item_mochila()
-		continue
-	
-	if opt == 3:
-		clear()
-		djikstra()
-		continue
- 
-	if opt == 0:
-		exit(0)
-
-	input("[-] Digite uma opcao valida, tecle ENTER para continuar")
+a = knapsack01(items, 15)
+print(a)
